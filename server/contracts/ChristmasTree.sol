@@ -2,8 +2,9 @@
 pragma solidity ^0.8.17;
 
 import "./IChristmasFarm.sol";
-import "../access/Roles.sol";
-import { Utils } from "../util/Utils.sol";
+import "./Roles.sol";
+import "./access/Roles.sol";
+import { Utils } from "./util/Utils.sol";
 
 
 // deploy network: moonbase alpha
@@ -20,8 +21,18 @@ contract ChristmasTree is IChristmasFarm, Roles {
     mapping(address => string[]) private claimed;
     mapping(address => uint) private accumulative;
 
-    modifier containsPresent(string calldata _key) {
+    modifier containsPresent(string memory _key) {
         if (!contains[_key]) revert ChristmasPresentNotExistsError(_key);
+        _;
+    }
+
+    modifier presentNotEmpty(string memory _key) {
+        if (empty[_key]) revert ChristmasPresentEmptyError(_key);
+        _;
+    }
+
+    modifier presentNotClaimed(address sender, string memory _key) {
+        if (record[_key][sender]) revert ChristmasPresentClaimedError(_key);
         _;
     }
 
@@ -30,8 +41,8 @@ contract ChristmasTree is IChristmasFarm, Roles {
     receive() external payable {}
 
     function createPresent(string calldata _key, uint _amount, uint _cBalance, bool _average)
-    external
-    payable
+        external
+        payable
     {
         require(msg.value != 0, "The balance in the present cannot be zero!");
         if (contains[_key]) revert ChristmasPresentAlreadyExistsError(_key);
@@ -55,17 +66,17 @@ contract ChristmasTree is IChristmasFarm, Roles {
     }
 
     function getSentPresents()
-    external
-    view
-    returns (string[] memory keys)
+        external
+        view
+        returns (string[] memory keys)
     {
         keys = sent[_msgSender()];
     }
 
     function getPresentInfo(string calldata _key)
-    external
-    view
-    containsPresent(_key)
+        external
+        view
+        containsPresent(_key)
     returns (
         address creator,
         uint initAmount,
@@ -86,78 +97,45 @@ contract ChristmasTree is IChristmasFarm, Roles {
         average = present.isAverage;
     }
 
-    function claimPresent(string calldata _key)
-    external
-    payable
-    returns (uint)
+    function claimPresent(string memory _key)
+        external
+        payable
+        containsPresent(_key)
+        presentNotEmpty(_key)
+        presentNotClaimed(_msgSender(), _key)
+        returns (uint)
     {
-        if (!contains[_key]) revert ChristmasPresentNotExistsError(_key);
-        if (empty[_key]) revert ChristmasPresentEmptyError(_key);
-
         Socks storage present = presents[_key];
         address sender = _msgSender();
-        if (record[_key][sender]) revert ChristmasPresentClaimedError(_key);
         if (present.conditionBalance > sender.balance) revert ChristmasPresentConditionLimitError(_key);
 
-        claimed[sender].push();
-
         record[_key][sender] = true;
+        claimed[sender].push(_key);
 
-        if (present.isAverage) {
-            uint value = present.currentBalance / present.currentAmount;
+        uint amount = present.currentAmount;
+        uint balance = present.currentBalance;
+        uint value = present.isAverage
+            ? (balance / amount)
+            :
+                (
+                    amount == 1
+                    ? balance
+                    : (Utils.random(100) * (balance / amount * 2)) / 100
+                );
 
-            present.currentAmount -= 1;
-            present.currentBalance -= value;
+        present.currentAmount -= 1;
+        present.currentBalance -= value;
 
-            if (present.currentAmount == 0) {
-                empty[_key] = true;
-            }
-
-            claimed[sender].push(_key);
-            uint history = accumulative[sender];
-            accumulative[sender] = history + value;
-
-            payable(_msgSender()).transfer(value);
-            emit ChristmasClaimedPresentEvent(sender, _key, value);
-            return value;
+        if (present.currentAmount == 0) {
+            empty[_key] = true;
         }
 
-        if (present.currentAmount == 1) {
-            uint value = present.currentBalance;
-            present.currentAmount = 0;
-            present.currentBalance = 0;
+        uint history = accumulative[sender];
+        accumulative[sender] = history + value;
 
-            if (present.currentAmount == 0) {
-                empty[_key] = true;
-            }
+        payable(sender).transfer(value);
 
-            claimed[sender].push(_key);
-            uint history = accumulative[sender];
-            accumulative[sender] = history + value;
-
-            payable(_msgSender()).transfer(value);
-            emit ChristmasClaimedPresentEvent(sender, _key, value);
-            return value;
-        } else {
-            uint min = 1;
-            uint max = present.currentBalance / present.currentAmount * 2;
-            uint value = (Utils.random(100) * max) / 100;
-            value = value < min ? min : value;
-
-            present.currentAmount -= 1;
-            present.currentBalance -= value;
-
-            if (present.currentAmount == 0) {
-                empty[_key] = true;
-            }
-
-            claimed[sender].push(_key);
-            uint history = accumulative[sender];
-            accumulative[sender] = history + value;
-
-            payable(_msgSender()).transfer(value);
-            emit ChristmasClaimedPresentEvent(sender, _key, value);
-            return value;
-        }
+        emit ChristmasClaimedPresentEvent(sender, _key, value);
+        return value;
     }
 }
