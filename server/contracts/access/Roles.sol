@@ -5,12 +5,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract Roles is AccessControl {
 
+    error NotAuthorizedError(address sender);
+
     constructor(address _onwer) {
         _setupRole(DEFAULT_ADMIN_ROLE, _onwer);
     }
 
     modifier onlyOnwer() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "You are not an authorized user.");
+        if (!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) revert NotAuthorizedError(_msgSender());
         _;
     }
 }

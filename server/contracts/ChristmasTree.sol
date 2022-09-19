@@ -57,13 +57,13 @@ contract ChristmasTree is IChristmasFarm, Roles {
         uint balance = msg.value;
 
         presents[_key] = Socks({
-        creator: sender,
-        initAmount: _amount,
-        initBalance: balance,
-        currentAmount: _amount,
-        currentBalance: balance,
-        conditionBalance: _cBalance,
-        isAverage: _average
+            creator: sender,
+            initAmount: _amount,
+            initBalance: balance,
+            currentAmount: _amount,
+            currentBalance: balance,
+            conditionBalance: _cBalance,
+            isAverage: _average
         });
         sent[sender].push(_key);
         contains[_key] = true;
