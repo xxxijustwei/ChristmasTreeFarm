@@ -4,13 +4,15 @@ pragma solidity ^0.8.17;
 import "./IChristmasFarm.sol";
 import "./access/Roles.sol";
 import { Utils } from "./util/Utils.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 // deploy network: moonbase alpha
 // deploy address: 0x7970977BbA896915d705806b0891B148d236Bbfe
 contract ChristmasTree is IChristmasFarm, Roles {
+    using SafeMath for uint;
 
-    mapping(string => Socks) private presents;
+    mapping(string => Socks) private presentMap;
     mapping(string => mapping(address => bool)) private record;
 
     mapping(string => bool) private contains;
@@ -56,7 +58,7 @@ contract ChristmasTree is IChristmasFarm, Roles {
         address sender = _msgSender();
         uint balance = msg.value;
 
-        presents[_key] = Socks({
+        presentMap[_key] = Socks({
             creator: sender,
             initAmount: _amount,
             initBalance: balance,
@@ -93,7 +95,7 @@ contract ChristmasTree is IChristmasFarm, Roles {
         bool average
     )
     {
-        Socks memory present = presents[_key];
+        Socks memory present = presentMap[_key];
         creator = present.creator;
         initAmount = present.initAmount;
         initBalance = present.initBalance;
@@ -111,7 +113,7 @@ contract ChristmasTree is IChristmasFarm, Roles {
         presentNotClaimed(_msgSender(), _key)
         returns (uint)
     {
-        Socks storage present = presents[_key];
+        Socks storage present = presentMap[_key];
         address sender = _msgSender();
         if (present.conditionBalance > sender.balance) revert PresentNotMeetConditionError(_key);
 
@@ -121,12 +123,12 @@ contract ChristmasTree is IChristmasFarm, Roles {
         uint amount = present.currentAmount;
         uint balance = present.currentBalance;
         uint value = present.isAverage
-            ? (balance / amount)
+            ? (balance.div(amount))
             :
                 (
                     amount == 1
                     ? balance
-                    : (Utils.random(100) * (balance / amount * 2)) / 100
+                    : Utils.random(100).mul(balance.div(amount.mul(2))).div(100)
                 );
 
         present.currentAmount -= 1;
