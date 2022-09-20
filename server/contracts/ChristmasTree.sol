@@ -20,7 +20,9 @@ contract ChristmasTree is IChristmasFarm, Roles {
 
     mapping(address => string[]) private sent;
     mapping(address => string[]) private claimed;
-    mapping(address => uint) private accumulative;
+
+    mapping(address => uint) private accumSend;
+    mapping(address => uint) private accumClaim;
 
     modifier containsPresent(string memory _key) {
         if (!contains[_key]) revert PresentNotExistsError(_key);
@@ -70,7 +72,52 @@ contract ChristmasTree is IChristmasFarm, Roles {
         sent[sender].push(_key);
         contains[_key] = true;
 
+        uint accum = accumSend[sender];
+        accumSend[sender] = accum + balance;
+
         emit CreatePresentEvent(sender, _key);
+    }
+    
+    function claimPresent(string memory _key)
+        external
+        payable
+        containsPresent(_key)
+        presentNotEmpty(_key)
+        presentNotClaimed(_msgSender(), _key)
+        returns (uint)
+    {
+        Socks storage present = presentMap[_key];
+        address sender = _msgSender();
+        if (present.conditionBalance > sender.balance) revert PresentNotMeetConditionError(_key);
+
+        record[_key][sender] = true;
+        claimed[sender].push(_key);
+
+        uint amount = present.currentAmount;
+        uint balance = present.currentBalance;
+        uint value = present.isAverage
+            ? (balance.div(amount))
+            :
+                (
+                    amount == 1
+                    ? balance
+                    : Utils.random(balance.mul(10).div(amount.mul(10).div(2)))
+                );
+
+        present.currentAmount -= 1;
+        present.currentBalance -= value;
+
+        if (present.currentAmount == 0) {
+            empty[_key] = true;
+        }
+
+        uint accum = accumClaim[sender];
+        accumClaim[sender] = accum + value;
+
+        payable(sender).transfer(value);
+
+        emit ClaimedPresentEvent(sender, _key, value);
+        return value;
     }
 
     function getSentPresents()
@@ -105,45 +152,15 @@ contract ChristmasTree is IChristmasFarm, Roles {
         average = present.isAverage;
     }
 
-    function claimPresent(string memory _key)
-        external
-        payable
-        containsPresent(_key)
-        presentNotEmpty(_key)
-        presentNotClaimed(_msgSender(), _key)
-        returns (uint)
-    {
-        Socks storage present = presentMap[_key];
-        address sender = _msgSender();
-        if (present.conditionBalance > sender.balance) revert PresentNotMeetConditionError(_key);
+    function getAccumSend() external view returns (uint) {
+        return accumSend[_msgSender()];
+    }
 
-        record[_key][sender] = true;
-        claimed[sender].push(_key);
+    function getAccumClaim() external view returns (uint) {
+        return accumClaim[_msgSender()];
+    }
 
-        uint amount = present.currentAmount;
-        uint balance = present.currentBalance;
-        uint value = present.isAverage
-            ? (balance.div(amount))
-            :
-                (
-                    amount == 1
-                    ? balance
-                    : Utils.random(100).mul(balance.div(amount.mul(2))).div(100)
-                );
-
-        present.currentAmount -= 1;
-        present.currentBalance -= value;
-
-        if (present.currentAmount == 0) {
-            empty[_key] = true;
-        }
-
-        uint history = accumulative[sender];
-        accumulative[sender] = history + value;
-
-        payable(sender).transfer(value);
-
-        emit ClaimedPresentEvent(sender, _key, value);
-        return value;
+    function canClaim(string calldata _key) external view returns (bool) {
+        return (contains[_key] && !empty[_key]);
     }
 }
