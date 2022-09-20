@@ -1,6 +1,5 @@
 .DS_Store
 .thumbs.db
-.vscode
 node_modules
 
 # Quasar core related directories
@@ -21,9 +20,7 @@ node_modules
 /src-bex/www
 /src-bex/js/core
 
-/src/artifacts
 /src/common
-/src/typechain-types
 
 # Log files
 npm-debug.log*
