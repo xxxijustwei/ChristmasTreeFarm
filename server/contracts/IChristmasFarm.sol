@@ -24,7 +24,7 @@ interface IChristmasFarm {
     error PresentNotMeetConditionError(string key);
 
     function createPresent(string calldata _key, uint _amount, uint _cBalance, bool _average) external payable;
-    function claimPresent(string calldata _key) external payable returns (uint);
+    function claimPresent(string calldata _key) external returns (uint);
 
     function getSentPresents() external view returns (string[] memory);
     function getPresentInfo(string calldata _key) external view returns (address, uint, uint, uint, uint, uint, bool);

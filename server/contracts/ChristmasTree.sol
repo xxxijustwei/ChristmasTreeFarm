@@ -80,7 +80,6 @@ contract ChristmasTree is IChristmasFarm, Roles {
     
     function claimPresent(string memory _key)
         external
-        payable
         containsPresent(_key)
         presentNotEmpty(_key)
         presentNotClaimed(_msgSender(), _key)
