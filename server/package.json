@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx hardhat compile && npm run copy",
+    "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run scripts/deploy.ts",
     "test": "npx hardhat test",
