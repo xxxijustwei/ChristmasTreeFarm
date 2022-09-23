@@ -3,12 +3,10 @@ pragma solidity ^0.8.17;
 
 import "./IChristmasFarm.sol";
 import "./access/Roles.sol";
-import { Utils } from "./util/Utils.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 // deploy network: moonbase alpha
-// deploy address: 0x7970977BbA896915d705806b0891B148d236Bbfe
 contract ChristmasTree is IChristmasFarm, Roles {
     using SafeMath for uint;
 
@@ -100,7 +98,7 @@ contract ChristmasTree is IChristmasFarm, Roles {
                 (
                     amount == 1
                     ? balance
-                    : Utils.random(balance.mul(10).div(amount.mul(10).div(2)))
+                    : _random(balance.mul(10).div(amount.mul(10).div(2)))
                 );
 
         present.currentAmount -= 1;
@@ -162,4 +160,10 @@ contract ChristmasTree is IChristmasFarm, Roles {
     function canClaim(string calldata _key) external view returns (bool) {
         return (contains[_key] && !empty[_key]);
     }
+
+    // unsafe
+    function _random(uint number) private view returns(uint) {
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
+    }
+
 }

@@ -13,8 +13,8 @@ interface IChristmasFarm {
         bool isAverage;
     }
 
-    event CreatePresentEvent(address indexed creator, string key);
-    event ClaimedPresentEvent(address indexed sender, string key, uint value);
+    event CreatePresentEvent(address indexed creator, string indexed key);
+    event ClaimedPresentEvent(address indexed sender, string indexed key, uint value);
 
     error PresentInvalidValueError(string key, uint value);
     error PresentEmptyError(string key);
