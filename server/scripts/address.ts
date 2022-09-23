@@ -1,5 +1,7 @@
 import fs from "fs";
 
+export let contract_name = "ChristmasTree"
+
 export function load_contract_address() {
     let deploy_address: {[key: string]: string} = {}
 

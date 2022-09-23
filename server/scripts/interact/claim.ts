@@ -1,9 +1,8 @@
 import hre from "hardhat";
-import {load_contract_address} from "../address";
-import {Contract} from "ethers";
-import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import { load_contract_address, contract_name } from "../address";
+import { Contract } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-let contract_name: string = "ChristmasTree"
 
 async function interact_contract(address: string) {
     let contract = await hre.ethers.getContractAt(contract_name, address)
@@ -16,19 +15,24 @@ async function interact_contract(address: string) {
 }
 
 async function claim(contract: Contract, account: SignerWithAddress) {
-    let key = "taylor"
+    let key = "taylor swift 1989"
 
-    let [,,,,balance,,] = await contract.getPresentInfo(key)
-    if (Number(balance) == 0) {
+    let ok = await contract.canClaim(key)
+    if (!ok) {
         console.log(`invalid key: ${key}`)
         return
     }
 
     let contractWithSigner = contract.connect(account)
     let tx = await contractWithSigner.claimPresent(key)
-    let receipt = await tx.wait()
+    let txReceipt = await tx.wait()
 
-    console.log(receipt)
+    let abi = ["event ClaimedPresentEvent(address indexed sender, string indexed key, uint value)"]
+    let iface = new hre.ethers.utils.Interface(abi)
+    let log = iface.parseLog(txReceipt.logs[0])
+    let value = log.args[2]
+
+    console.log(`address ${account.address} claim: ${hre.ethers.utils.formatEther(value)}`)
 }
 
 async function main() {

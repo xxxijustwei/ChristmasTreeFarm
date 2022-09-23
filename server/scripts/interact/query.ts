@@ -1,7 +1,6 @@
 import hre from "hardhat";
-import {load_contract_address} from "../address";
+import { load_contract_address, contract_name } from "../address";
 
-let contract_name: string = "ChristmasTree"
 
 async function interact_contract(address: string) {
     const [account,] = await hre.ethers.getSigners()

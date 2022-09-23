@@ -1,7 +1,6 @@
 import hre from "hardhat";
-import { load_contract_address } from "../address";
+import { load_contract_address, contract_name } from "../address";
 
-let contract_name: string = "ChristmasTree"
 
 async function interact_contract(address: string) {
     const contract = await hre.ethers.getContractAt(contract_name, address)
@@ -9,7 +8,7 @@ async function interact_contract(address: string) {
         value: hre.ethers.utils.parseEther("0.01")
     }
     let tx = await contract.createPresent(
-            "taylor",
+            "taylor swift 1989",
             2,
             hre.ethers.utils.parseEther("0.01"),
             false,
