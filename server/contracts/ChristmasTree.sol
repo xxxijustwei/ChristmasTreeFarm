@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity >0.8.0;
 
 import "./IChristmasFarm.sol";
 import "./access/Roles.sol";
@@ -48,10 +48,11 @@ contract ChristmasTree is IChristmasFarm, Roles {
 
     receive() external payable {}
 
-    function createPresent(string calldata _key, uint _amount, uint _cBalance, bool _average)
-        external
-        payable
-        isValidValue(_key, msg.value, _amount)
+    function create(string calldata _key, uint _amount, uint _cBalance, bool _average)
+    override
+    external
+    payable
+    isValidValue(_key, msg.value, _amount)
     {
         if (contains[_key]) revert PresentAlreadyExistsError(_key);
 
@@ -59,13 +60,13 @@ contract ChristmasTree is IChristmasFarm, Roles {
         uint balance = msg.value;
 
         presentMap[_key] = Socks({
-            creator: sender,
-            initAmount: _amount,
-            initBalance: balance,
-            currentAmount: _amount,
-            currentBalance: balance,
-            conditionBalance: _cBalance,
-            isAverage: _average
+        creator: sender,
+        initAmount: _amount,
+        initBalance: balance,
+        currentAmount: _amount,
+        currentBalance: balance,
+        conditionBalance: _cBalance,
+        isAverage: _average
         });
         sent[sender].push(_key);
         contains[_key] = true;
@@ -75,13 +76,18 @@ contract ChristmasTree is IChristmasFarm, Roles {
 
         emit CreatePresentEvent(sender, _key);
     }
-    
-    function claimPresent(string memory _key)
-        external
-        containsPresent(_key)
-        presentNotEmpty(_key)
-        presentNotClaimed(_msgSender(), _key)
-        returns (uint)
+
+    function participate(string calldata _key) override external payable {
+
+    }
+
+    function claim(string memory _key)
+    override
+    external
+    containsPresent(_key)
+    presentNotEmpty(_key)
+    presentNotClaimed(_msgSender(), _key)
+    returns (uint)
     {
         Socks storage present = presentMap[_key];
         address sender = _msgSender();
@@ -93,13 +99,13 @@ contract ChristmasTree is IChristmasFarm, Roles {
         uint amount = present.currentAmount;
         uint balance = present.currentBalance;
         uint value = present.isAverage
-            ? (balance.div(amount))
-            :
-                (
-                    amount == 1
-                    ? balance
-                    : _random(balance.mul(10).div(amount.mul(10).div(2)))
-                );
+        ? (balance.div(amount))
+        :
+        (
+        amount == 1
+        ? balance
+        : _random(balance.mul(10).div(amount.mul(10).div(2)))
+        );
 
         present.currentAmount -= 1;
         present.currentBalance -= value;
@@ -118,17 +124,19 @@ contract ChristmasTree is IChristmasFarm, Roles {
     }
 
     function getSentPresents()
-        external
-        view
-        returns (string[] memory keys)
+    override
+    external
+    view
+    returns (string[] memory keys)
     {
         keys = sent[_msgSender()];
     }
 
     function getPresentInfo(string calldata _key)
-        external
-        view
-        containsPresent(_key)
+    override
+    external
+    view
+    containsPresent(_key)
     returns (
         address creator,
         uint initAmount,
@@ -149,15 +157,15 @@ contract ChristmasTree is IChristmasFarm, Roles {
         average = present.isAverage;
     }
 
-    function getAccumSend() external view returns (uint) {
+    function getAccumSend() override external view returns (uint) {
         return accumSend[_msgSender()];
     }
 
-    function getAccumClaim() external view returns (uint) {
+    function getAccumClaim() override external view returns (uint) {
         return accumClaim[_msgSender()];
     }
 
-    function canClaim(string calldata _key) external view returns (bool) {
+    function canClaim(string calldata _key) override external view returns (bool) {
         return (contains[_key] && !empty[_key]);
     }
 
