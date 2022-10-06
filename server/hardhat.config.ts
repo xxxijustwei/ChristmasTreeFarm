@@ -18,7 +18,7 @@ const config: HardhatUserConfig = {
     defaultNetwork: "moonbase",
     networks: {
         moonbase: {
-            url: "https://moonbase-alpha.public.blastapi.io",
+            url: "https://moonbeam-alpha.api.onfinality.io/public",
             chainId: 1287,
             accounts: [
                 PRIVATE_KEY_1!,
