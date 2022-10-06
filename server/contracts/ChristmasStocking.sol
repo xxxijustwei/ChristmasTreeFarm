@@ -31,35 +31,39 @@ contract ChristmasStocking is RandomnessConsumer {
     mapping(address => uint) private userToRequest;
     mapping(uint => address) private requestToUser;
 
-    modifier canParticipate() {
-        require(currentMoney != 0 && !participateIn[msg.sender] && participateCount != initAmount);
+    modifier canParticipate(address _sender) {
+        if (currentMoney == 0 || participateIn[_sender] || participateCount == initAmount) revert CantParticipate();
         _;
     }
 
-    modifier canClaim() {
-        require(
-            currentMoney != 0 &&
-            participateIn[msg.sender] &&
-            randomness.getRequestStatus(userToRequest[msg.sender]) == Randomness.RequestStatus.Ready
-        );
+    modifier canClaim(address _sender) {
+        if (currentMoney == 0 || !participateIn[_sender] || randomness.getRequestStatus(userToRequest[_sender]) == Randomness.RequestStatus.Ready) revert CantClaim();
+
         _;
     }
 
-    constructor(bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
-        owner = msg.sender;
+    error NotEnoughFee(uint value, uint required);
+    error DepositTooLow(uint value, uint required);
+    error CantParticipate();
+    error CantClaim();
+
+    constructor(address _owner, bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
+        owner = _owner;
         (initAmount, currentAmount) = (_amount, _amount);
         (initMoney, currentMoney) = (_money, _money);
         SALT_PREFIX = _salt;
         globalRequestCount = 0;
     }
 
-    function participate() external payable canParticipate {
+    function participate(address _sender) external payable canParticipate(_sender) {
         uint fee = msg.value;
-        require(fee >= MIN_FEE);
-        require(address(this).balance >= randomness.requiredDeposit());
+        if (fee < MIN_FEE) revert NotEnoughFee(fee, MIN_FEE);
 
-        address sender = msg.sender;
-        participateIn[sender] = true;
+        uint balance = address(this).balance;
+        uint required = randomness.requiredDeposit();
+        if (balance < required) revert DepositTooLow(balance, required);
+
+        participateIn[_sender] = true;
         participateCount++;
 
         uint id = randomness.requestLocalVRFRandomWords(
@@ -71,12 +75,12 @@ contract ChristmasStocking is RandomnessConsumer {
             2
         );
 
-        userToRequest[sender] = id;
-        requestToUser[id] = sender;
+        userToRequest[_sender] = id;
+        requestToUser[id] = _sender;
     }
 
-    function claim() external canClaim {
-        randomness.fulfillRequest(userToRequest[msg.sender]);
+    function claim(address _sender) external canClaim(_sender) {
+        randomness.fulfillRequest(userToRequest[_sender]);
     }
 
     function fulfillRandomWords(uint256 requestID, uint256[] memory randomWords) override internal {
@@ -97,4 +101,5 @@ contract ChristmasStocking is RandomnessConsumer {
         (bool ok, ) = payable(user).call{value: reward}("");
         require(ok);
     }
+
 }

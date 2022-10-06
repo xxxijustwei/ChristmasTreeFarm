@@ -2,45 +2,64 @@
 pragma solidity >0.8.0;
 
 import "./ChristmasStocking.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract ChristmasFarm {
 
-    mapping(string => bool) contains;
-    mapping(string => ChristmasStocking) private presents;
-    mapping(string => address) private owners;
+    uint public constant KEY_LENGTH = 6;
 
-    modifier exists(string calldata _key) {
-        require(contains[_key]);
+    mapping(uint => bool) contains;
+    mapping(uint => ChristmasStocking) public presents;
+    mapping(uint => address) private owners;
+
+    modifier exists(uint _key) {
+        if (!contains[_key]) revert PresentNotExists(_key);
         _;
     }
 
-    function create(string calldata _key, uint _amount, uint _money) external payable {
+    event ChristmasCreateEvent(uint indexed key, address indexed addr);
+    event ChristmasParticipateEvent(uint indexed key, bool success);
+
+    error InvalidKeyLength(uint key, uint requireLen);
+    error PresentAlreadyExists(uint key);
+    error PresentNotExists(uint key);
+    error NotEnoughAmount(uint money, uint deposit);
+    error InvalidAmount(uint count, uint amount);
+
+    function create(uint _key, uint _count) external payable {
+        if (getUintLength(_key) != KEY_LENGTH) revert InvalidKeyLength(_key, KEY_LENGTH);
+        if (contains[_key]) revert PresentAlreadyExists(_key);
+
+        address sender = msg.sender;
         uint value = msg.value;
-        require(value >= _money + _amount);
 
-        uint per = _money / _amount;
-        require(per * _amount == _money);
+        uint deposit = _count * 10 ** 18;
+        if (value <= deposit) revert NotEnoughAmount(value, deposit);
+        uint amount = value - deposit;
+        uint per = amount / _count;
+        if (per * _count != amount) revert InvalidAmount(_count, amount);
 
-        bytes memory convert = bytes(_key);
-        require(convert.length != 0);
-
-        bytes32 salt;
-        assembly {
-            salt := mload(add(convert, 32))
-        }
-
-        ChristmasStocking stocking = (new ChristmasStocking){value: value}(salt, _amount, _money);
+        ChristmasStocking stocking = (new ChristmasStocking){value: value}(sender, bytes32(_key), _count, amount);
         contains[_key] = true;
         presents[_key] = stocking;
-        owners[_key] = msg.sender;
+        owners[_key] = sender;
+
+        emit ChristmasCreateEvent(_key, address(stocking));
     }
 
-    function participate(string calldata _key) external payable exists(_key) {
-        presents[_key].participate();
+    function participate(uint _key) external payable exists(_key) {
+        presents[_key].participate{value: msg.value}(msg.sender);
     }
 
-    function claim(string calldata _key) external exists(_key) {
-        presents[_key].claim();
+    function claim(uint _key) external exists(_key) {
+        presents[_key].claim(msg.sender);
     }
 
+    function get(uint _key) external exists(_key) view returns (address) {
+        return address(presents[_key]);
+    }
+
+    function getUintLength(uint _value) internal pure returns (uint) {
+        return bytes(Strings.toString(_value)).length;
+    }
 }
