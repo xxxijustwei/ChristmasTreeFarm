@@ -27,7 +27,7 @@ contract ChristmasFarm {
     error InvalidAmount(uint count, uint amount);
 
     function create(uint _key, uint _count) external payable {
-        if (getUintLength(_key) != KEY_LENGTH) revert InvalidKeyLength(_key, KEY_LENGTH);
+        if (_getUintLength(_key) != KEY_LENGTH) revert InvalidKeyLength(_key, KEY_LENGTH);
         if (contains[_key]) revert PresentAlreadyExists(_key);
 
         address sender = msg.sender;
@@ -39,7 +39,7 @@ contract ChristmasFarm {
         uint per = amount / _count;
         if (per * _count != amount) revert InvalidAmount(_count, amount);
 
-        ChristmasStocking stocking = (new ChristmasStocking){value: value}(sender, bytes32(_key), _count, amount);
+        ChristmasStocking stocking = (new ChristmasStocking){value: value}(sender, _getSalt(_key), _count, amount);
         contains[_key] = true;
         presents[_key] = stocking;
         owners[_key] = sender;
@@ -47,19 +47,20 @@ contract ChristmasFarm {
         emit ChristmasCreateEvent(_key, address(stocking));
     }
 
-    function participate(uint _key) external payable exists(_key) {
-        presents[_key].participate{value: msg.value}(msg.sender);
-    }
-
-    function claim(uint _key) external exists(_key) {
-        presents[_key].claim(msg.sender);
+    function participate(uint _key) external exists(_key) {
+        presents[_key].participate(msg.sender);
     }
 
     function get(uint _key) external exists(_key) view returns (address) {
         return address(presents[_key]);
     }
 
-    function getUintLength(uint _value) internal pure returns (uint) {
-        return bytes(Strings.toString(_value)).length;
+    function _getUintLength(uint _key) internal pure returns (uint) {
+        return bytes(Strings.toString(_key)).length;
     }
+
+    function _getSalt(uint _key) internal pure returns (bytes32) {
+        return keccak256(abi.encodeWithSignature("taylor", _key, 1989));
+    }
+
 }

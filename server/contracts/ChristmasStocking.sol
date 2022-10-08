@@ -14,92 +14,100 @@ contract ChristmasStocking is RandomnessConsumer {
     Randomness private randomness = Randomness(0x0000000000000000000000000000000000000809);
 
     uint64 private FULFILLMENT_GAS_LIMIT = 100000;
-    uint256 public MIN_FEE = FULFILLMENT_GAS_LIMIT * 1 gwei;
+    uint private MIN_FEE = 300000 gwei;
+    uint private DEPOSIT = 1 ether;
     bytes32 private SALT_PREFIX;
-    uint256 private globalRequestCount;
+    uint private globalRequestCount;
 
-    uint public initAmount;
-    uint public initMoney;
+    uint public originCount;
+    uint public originAmount;
+    uint public currentCount;
     uint public currentAmount;
-    uint public currentMoney;
+
+    uint public requestID = 2 ** 64 - 1;
+    uint[] private results;
+    bool public done;
 
     uint public participateCount;
-    mapping(address => bool) private participateIn;
-
-    mapping(address => bool) private claimed;
-
-    mapping(address => uint) private userToRequest;
-    mapping(uint => address) private requestToUser;
+    mapping(address => bool) public participateIn;
 
     modifier canParticipate(address _sender) {
-        if (currentMoney == 0 || participateIn[_sender] || participateCount == initAmount) revert CantParticipate();
+        if (
+            currentCount == 0 ||
+            currentAmount == 0 ||
+            participateIn[_sender] ||
+            !done
+        ) revert CantParticipate();
         _;
     }
 
-    modifier canClaim(address _sender) {
-        if (currentMoney == 0 || !participateIn[_sender] || randomness.getRequestStatus(userToRequest[_sender]) == Randomness.RequestStatus.Ready) revert CantClaim();
-
-        _;
-    }
+    event ParticipateEvent(address indexed participant, uint reward, uint randomWord);
 
     error NotEnoughFee(uint value, uint required);
     error DepositTooLow(uint value, uint required);
     error CantParticipate();
-    error CantClaim();
 
-    constructor(address _owner, bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
+    constructor(address _owner, bytes32 _salt, uint _count, uint _amount) payable RandomnessConsumer() {
         owner = _owner;
-        (initAmount, currentAmount) = (_amount, _amount);
-        (initMoney, currentMoney) = (_money, _money);
         SALT_PREFIX = _salt;
+        (originCount, currentCount) = (_count, _count);
+        (originAmount, currentAmount) = (_amount, _amount);
         globalRequestCount = 0;
+
+        _requestRandomenss();
     }
 
-    function participate(address _sender) external payable canParticipate(_sender) {
-        uint fee = msg.value;
+    function _requestRandomenss() internal {
+        uint balance = address(this).balance;
+
+        uint fee = balance - DEPOSIT - originAmount;
         if (fee < MIN_FEE) revert NotEnoughFee(fee, MIN_FEE);
 
-        uint balance = address(this).balance;
+        uint deposit = balance - fee - originAmount;
         uint required = randomness.requiredDeposit();
-        if (balance < required) revert DepositTooLow(balance, required);
+        if (deposit < required) revert DepositTooLow(balance, required);
 
-        participateIn[_sender] = true;
-        participateCount++;
-
-        uint id = randomness.requestLocalVRFRandomWords(
+        requestID = randomness.requestLocalVRFRandomWords(
             owner,
             fee,
             FULFILLMENT_GAS_LIMIT,
-            SALT_PREFIX ^ bytes32(globalRequestCount++),
-            1,
+            SALT_PREFIX,
+            uint8(originCount - 1),
             2
         );
-
-        userToRequest[_sender] = id;
-        requestToUser[id] = _sender;
     }
 
-    function claim(address _sender) external canClaim(_sender) {
-        randomness.fulfillRequest(userToRequest[_sender]);
+    function fulfillRequest() external {
+        randomness.fulfillRequest(requestID);
     }
 
-    function fulfillRandomWords(uint256 requestID, uint256[] memory randomWords) override internal {
-        address user = requestToUser[requestID];
-        allocate(user, randomWords[0]);
+    function increaseRequestFee() external payable {
+        randomness.increaseRequestFee(requestID, msg.value);
     }
 
-    function allocate(address user, uint randomWord) internal {
-        claimed[user] = true;
+    function participate(address _sender) external canParticipate(_sender) {
+        participateIn[_sender] = true;
 
-        uint reward = currentAmount == 1 ?
-        currentMoney :
-        randomWord % (currentMoney.mul(10).div(currentAmount.mul(10).div(2)));
+        uint word = results[originCount - currentCount];
+        uint reward = currentCount == 1 ?
+            currentAmount :
+            word % (currentAmount.mul(10).div(currentCount.mul(10).div(2)));
 
-        currentAmount--;
-        currentMoney -= reward;
+        currentCount -= 1;
+        currentAmount -= reward;
 
-        (bool ok, ) = payable(user).call{value: reward}("");
+        (bool ok,) = payable(_sender).call{value: reward}("");
         require(ok);
+
+        emit ParticipateEvent(_sender, reward, word);
     }
 
+    function fulfillRandomWords(uint256, uint256[] memory randomWords) override internal {
+        results = randomWords;
+        done = true;
+    }
+
+    function getRequestStatus() public view returns (uint) {
+        return uint(randomness.getRequestStatus(requestID));
+    }
 }
