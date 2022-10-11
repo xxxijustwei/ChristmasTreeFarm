@@ -39,7 +39,8 @@ contract ChristmasFarm {
         uint per = amount / _count;
         if (per * _count != amount) revert InvalidAmount(_count, amount);
 
-        ChristmasStocking stocking = (new ChristmasStocking){value: value}(sender, _getSalt(_key), _count, amount);
+        bytes32 salt = _getSalt(_key);
+        ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}(sender, salt, _count, amount);
         contains[_key] = true;
         presents[_key] = stocking;
         owners[_key] = sender;
@@ -51,7 +52,7 @@ contract ChristmasFarm {
         presents[_key].participate(msg.sender);
     }
 
-    function get(uint _key) external exists(_key) view returns (address) {
+    function getAddress(uint _key) external exists(_key) view returns (address) {
         return address(presents[_key]);
     }
 

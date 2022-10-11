@@ -3,21 +3,23 @@ pragma solidity >0.8.0;
 
 import "./randomness/Randomness.sol";
 import "./randomness/RandomnessConsumer.sol";
+import "./utils/Uint8a32.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 contract ChristmasStocking is RandomnessConsumer {
 
+    using Uint8a32 for uint;
     using SafeMath for uint;
 
-    address public owner;
+    address public immutable OWNER;
+    bytes32 private immutable SALT;
 
     Randomness private randomness = Randomness(0x0000000000000000000000000000000000000809);
 
     uint64 private FULFILLMENT_GAS_LIMIT = 100000;
-    uint private MIN_FEE = 300000 gwei;
+    uint private MIN_FEE = FULFILLMENT_GAS_LIMIT * 2 gwei;
     uint private DEPOSIT = 1 ether;
-    bytes32 private SALT_PREFIX;
-    uint private globalRequestCount;
 
     uint public originCount;
     uint public originAmount;
@@ -25,7 +27,7 @@ contract ChristmasStocking is RandomnessConsumer {
     uint public currentAmount;
 
     uint public requestID = 2 ** 64 - 1;
-    uint[] private results;
+    uint private result;
     bool public done;
 
     uint public participateCount;
@@ -48,30 +50,26 @@ contract ChristmasStocking is RandomnessConsumer {
     error CantParticipate();
 
     constructor(address _owner, bytes32 _salt, uint _count, uint _amount) payable RandomnessConsumer() {
-        owner = _owner;
-        SALT_PREFIX = _salt;
+        OWNER = _owner;
+        SALT = _salt;
         (originCount, currentCount) = (_count, _count);
         (originAmount, currentAmount) = (_amount, _amount);
-        globalRequestCount = 0;
-
-        _requestRandomenss();
     }
 
-    function _requestRandomenss() internal {
-        uint balance = address(this).balance;
-
-        uint fee = balance - DEPOSIT - originAmount;
+    function requestRandomWord() external payable {
+        uint fee = msg.value;
         if (fee < MIN_FEE) revert NotEnoughFee(fee, MIN_FEE);
 
-        uint deposit = balance - fee - originAmount;
+        uint balance = address(this).balance;
+        uint deposit = balance - originAmount;
         uint required = randomness.requiredDeposit();
         if (deposit < required) revert DepositTooLow(balance, required);
 
         requestID = randomness.requestLocalVRFRandomWords(
-            owner,
+            OWNER,
             fee,
             FULFILLMENT_GAS_LIMIT,
-            SALT_PREFIX,
+            SALT,
             uint8(originCount - 1),
             2
         );
@@ -88,10 +86,10 @@ contract ChristmasStocking is RandomnessConsumer {
     function participate(address _sender) external canParticipate(_sender) {
         participateIn[_sender] = true;
 
-        uint word = results[originCount - currentCount];
+        uint randomWord = result.get(originCount - currentCount);
         uint reward = currentCount == 1 ?
-            currentAmount :
-            word % (currentAmount.mul(10).div(currentCount.mul(10).div(2)));
+        currentAmount :
+        currentAmount.mul(randomWord).div(100);
 
         currentCount -= 1;
         currentAmount -= reward;
@@ -99,12 +97,14 @@ contract ChristmasStocking is RandomnessConsumer {
         (bool ok,) = payable(_sender).call{value: reward}("");
         require(ok);
 
-        emit ParticipateEvent(_sender, reward, word);
+        emit ParticipateEvent(_sender, reward, randomWord);
     }
 
-    function fulfillRandomWords(uint256, uint256[] memory randomWords) override internal {
-        results = randomWords;
+    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
         done = true;
+        for (uint32 i = 0; i < randomWords.length; i++) {
+            result = result.set(i, randomWords[i] % 100);
+        }
     }
 
     function getRequestStatus() public view returns (uint) {
