@@ -48,10 +48,6 @@ contract ChristmasFarm {
         emit ChristmasCreateEvent(_key, address(stocking));
     }
 
-    function participate(uint _key) external exists(_key) {
-        presents[_key].participate(msg.sender);
-    }
-
     function getAddress(uint _key) external exists(_key) view returns (address) {
         return address(presents[_key]);
     }

@@ -33,13 +33,18 @@ contract ChristmasStocking is RandomnessConsumer {
     uint public participateCount;
     mapping(address => bool) public participateIn;
 
-    modifier canParticipate(address _sender) {
+    modifier canParticipate() {
         if (
             currentAmount == 0 ||
             currentMoney == 0 ||
-            participateIn[_sender] ||
+            participateIn[msg.sender] ||
             !done
         ) revert CantParticipate();
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Permission denied");
         _;
     }
 
@@ -65,16 +70,18 @@ contract ChristmasStocking is RandomnessConsumer {
         );
     }
 
-    function fulfillRequest() external {
+    function enable() external onlyOwner {
+        require(getRequestStatus() == 2, "Failed to enable");
         randomness.fulfillRequest(requestID);
     }
 
-    function increaseRequestFee() external payable {
+    function increaseRequestFee() external payable onlyOwner {
         randomness.increaseRequestFee(requestID, msg.value);
     }
 
-    function participate(address _sender) external canParticipate(_sender) {
-        participateIn[_sender] = true;
+    function participate() external canParticipate() {
+        address sender = msg.sender;
+        participateIn[sender] = true;
 
         uint random = result.get(originAmount - currentAmount);
         uint reward = currentAmount == 1 ?
@@ -84,10 +91,10 @@ contract ChristmasStocking is RandomnessConsumer {
         currentAmount -= 1;
         currentMoney -= reward;
 
-        (bool ok,) = payable(_sender).call{value: reward}("");
+        (bool ok,) = payable(sender).call{value: reward}("");
         require(ok);
 
-        emit ParticipateEvent(_sender, reward, random);
+        emit ParticipateEvent(sender, reward, random);
     }
 
     function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
