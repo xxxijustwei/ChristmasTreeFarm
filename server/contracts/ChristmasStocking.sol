@@ -76,10 +76,10 @@ contract ChristmasStocking is RandomnessConsumer {
     function participate(address _sender) external canParticipate(_sender) {
         participateIn[_sender] = true;
 
-        uint randomWord = result.get(originAmount - currentAmount);
+        uint random = result.get(originAmount - currentAmount);
         uint reward = currentAmount == 1 ?
             currentMoney :
-            currentMoney.mul(randomWord).div(100);
+            (currentMoney.mul(10).div(currentAmount.mul(5))).mul(random).div(100);
 
         currentAmount -= 1;
         currentMoney -= reward;
@@ -87,13 +87,17 @@ contract ChristmasStocking is RandomnessConsumer {
         (bool ok,) = payable(_sender).call{value: reward}("");
         require(ok);
 
-        emit ParticipateEvent(_sender, reward, randomWord);
+        emit ParticipateEvent(_sender, reward, random);
     }
 
     function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
         done = true;
         for (uint32 i = 0; i < randomWords.length; i++) {
-            result = result.set(i, randomWords[i] % 100);
+            uint random = randomWords[i];
+            uint scope = random % 16;
+            uint value = random % 2 == 0 ? 50 + scope : 50 - scope;
+
+            result = result.set(i, value);
         }
     }
 
