@@ -21,10 +21,10 @@ contract ChristmasStocking is RandomnessConsumer {
     uint private MIN_FEE = FULFILLMENT_GAS_LIMIT * 2 gwei;
     uint private DEPOSIT = 1 ether;
 
-    uint public originCount;
     uint public originAmount;
-    uint public currentCount;
+    uint public originMoney;
     uint public currentAmount;
+    uint public currentMoney;
 
     uint public requestID = 2 ** 64 - 1;
     uint private result;
@@ -35,8 +35,8 @@ contract ChristmasStocking is RandomnessConsumer {
 
     modifier canParticipate(address _sender) {
         if (
-            currentCount == 0 ||
             currentAmount == 0 ||
+            currentMoney == 0 ||
             participateIn[_sender] ||
             !done
         ) revert CantParticipate();
@@ -49,11 +49,11 @@ contract ChristmasStocking is RandomnessConsumer {
     error DepositTooLow(uint value, uint required);
     error CantParticipate();
 
-    constructor(address _owner, bytes32 _salt, uint _count, uint _amount) payable RandomnessConsumer() {
+    constructor(address _owner, bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
         OWNER = _owner;
         SALT = _salt;
-        (originCount, currentCount) = (_count, _count);
         (originAmount, currentAmount) = (_amount, _amount);
+        (originMoney, currentMoney) = (_money, _money);
     }
 
     function requestRandomWord() external payable {
@@ -61,7 +61,7 @@ contract ChristmasStocking is RandomnessConsumer {
         if (fee < MIN_FEE) revert NotEnoughFee(fee, MIN_FEE);
 
         uint balance = address(this).balance;
-        uint deposit = balance - originAmount;
+        uint deposit = balance - originMoney;
         uint required = randomness.requiredDeposit();
         if (deposit < required) revert DepositTooLow(balance, required);
 
@@ -70,7 +70,7 @@ contract ChristmasStocking is RandomnessConsumer {
             fee,
             FULFILLMENT_GAS_LIMIT,
             SALT,
-            uint8(originCount - 1),
+            uint8(originAmount - 1),
             2
         );
     }
@@ -86,13 +86,13 @@ contract ChristmasStocking is RandomnessConsumer {
     function participate(address _sender) external canParticipate(_sender) {
         participateIn[_sender] = true;
 
-        uint randomWord = result.get(originCount - currentCount);
-        uint reward = currentCount == 1 ?
-        currentAmount :
-        currentAmount.mul(randomWord).div(100);
+        uint randomWord = result.get(originAmount - currentAmount);
+        uint reward = currentAmount == 1 ?
+            currentMoney :
+            currentMoney.mul(randomWord).div(100);
 
-        currentCount -= 1;
-        currentAmount -= reward;
+        currentAmount -= 1;
+        currentMoney -= reward;
 
         (bool ok,) = payable(_sender).call{value: reward}("");
         require(ok);
