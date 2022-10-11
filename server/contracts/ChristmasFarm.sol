@@ -26,21 +26,23 @@ contract ChristmasFarm {
     error NotEnoughAmount(uint money, uint deposit);
     error InvalidAmount(uint count, uint amount);
 
-    function create(uint _key, uint _count) external payable {
+    function create(uint _key, uint _amount) external payable {
+        require(_amount <= 32, "Amount cannot be greater than 32");
+
         if (_getUintLength(_key) != KEY_LENGTH) revert InvalidKeyLength(_key, KEY_LENGTH);
         if (contains[_key]) revert PresentAlreadyExists(_key);
 
         address sender = msg.sender;
         uint value = msg.value;
 
-        uint deposit = _count * 10 ** 18;
+        uint deposit = _amount * 10 ** 18;
         if (value <= deposit) revert NotEnoughAmount(value, deposit);
-        uint amount = value - deposit;
-        uint per = amount / _count;
-        if (per * _count != amount) revert InvalidAmount(_count, amount);
+        uint money = value - deposit;
+        uint per = money / _amount;
+        if (per * _amount != money) revert InvalidAmount(_amount, money);
 
         bytes32 salt = _getSalt(_key);
-        ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}(sender, salt, _count, amount);
+        ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}(sender, salt, _amount, money);
         contains[_key] = true;
         presents[_key] = stocking;
         owners[_key] = sender;
