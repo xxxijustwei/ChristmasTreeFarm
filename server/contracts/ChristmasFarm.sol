@@ -23,8 +23,7 @@ contract ChristmasFarm {
     error InvalidKeyLength(uint key, uint requireLen);
     error PresentAlreadyExists(uint key);
     error PresentNotExists(uint key);
-    error NotEnoughAmount(uint money, uint deposit);
-    error InvalidAmount(uint count, uint amount);
+    error NotEnoughMoney(uint money, uint deposit);
 
     function create(uint _key, uint _amount) external payable {
         require(_amount <= 32, "Amount cannot be greater than 32");
@@ -35,13 +34,12 @@ contract ChristmasFarm {
         address sender = msg.sender;
         uint value = msg.value;
 
-        uint deposit = _amount * 10 ** 18;
-        if (value <= deposit) revert NotEnoughAmount(value, deposit);
-        uint money = value - deposit;
-        uint per = money / _amount;
-        if (per * _amount != money) revert InvalidAmount(_amount, money);
+        uint cost = DEPOSIT + MIN_FEE;
+        if (value <= cost) revert NotEnoughMoney(value, cost);
 
+        uint money = value - cost;
         bytes32 salt = _getSalt(_key);
+
         ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}(sender, salt, _amount, money);
         contains[_key] = true;
         presents[_key] = stocking;

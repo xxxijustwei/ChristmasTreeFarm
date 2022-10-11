@@ -7,19 +7,19 @@ import "./utils/Uint8a32.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "hardhat/console.sol";
 
+uint64 constant FULFILLMENT_GAS_LIMIT = 100000;
+uint constant MIN_FEE = FULFILLMENT_GAS_LIMIT * 2 gwei;
+uint constant DEPOSIT = 1 ether;
+
 contract ChristmasStocking is RandomnessConsumer {
 
     using Uint8a32 for uint;
     using SafeMath for uint;
 
-    address public immutable OWNER;
-    bytes32 private immutable SALT;
+    address public owner;
+    bytes32 private salt;
 
     Randomness private randomness = Randomness(0x0000000000000000000000000000000000000809);
-
-    uint64 private FULFILLMENT_GAS_LIMIT = 100000;
-    uint private MIN_FEE = FULFILLMENT_GAS_LIMIT * 2 gwei;
-    uint private DEPOSIT = 1 ether;
 
     uint public originAmount;
     uint public originMoney;
@@ -50,26 +50,16 @@ contract ChristmasStocking is RandomnessConsumer {
     error CantParticipate();
 
     constructor(address _owner, bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
-        OWNER = _owner;
-        SALT = _salt;
+        owner = _owner;
+        salt = _salt;
         (originAmount, currentAmount) = (_amount, _amount);
         (originMoney, currentMoney) = (_money, _money);
-    }
-
-    function requestRandomWord() external payable {
-        uint fee = msg.value;
-        if (fee < MIN_FEE) revert NotEnoughFee(fee, MIN_FEE);
-
-        uint balance = address(this).balance;
-        uint deposit = balance - originMoney;
-        uint required = randomness.requiredDeposit();
-        if (deposit < required) revert DepositTooLow(balance, required);
 
         requestID = randomness.requestLocalVRFRandomWords(
-            OWNER,
-            fee,
+            owner,
+            MIN_FEE,
             FULFILLMENT_GAS_LIMIT,
-            SALT,
+            salt,
             uint8(originAmount - 1),
             2
         );
