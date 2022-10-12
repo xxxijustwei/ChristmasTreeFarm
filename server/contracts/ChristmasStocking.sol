@@ -16,11 +16,13 @@ contract ChristmasStocking is RandomnessConsumer {
     using Uint8a32 for uint;
     using SafeMath for uint;
 
+    address public factory;
     address public owner;
     bytes32 private salt;
 
     Randomness private randomness = Randomness(0x0000000000000000000000000000000000000809);
 
+    uint private key;
     uint public originAmount;
     uint public originMoney;
     uint public currentAmount;
@@ -54,9 +56,14 @@ contract ChristmasStocking is RandomnessConsumer {
     error DepositTooLow(uint value, uint required);
     error CantParticipate();
 
-    constructor(address _owner, bytes32 _salt, uint _amount, uint _money) payable RandomnessConsumer() {
+    constructor() payable RandomnessConsumer() {
+        factory = msg.sender;
+    }
+
+    function initialize(address _owner, uint _key, bytes32 _salt, uint _amount, uint _money) external {
         owner = _owner;
         salt = _salt;
+        key = _key;
         (originAmount, currentAmount) = (_amount, _amount);
         (originMoney, currentMoney) = (_money, _money);
 
@@ -70,8 +77,8 @@ contract ChristmasStocking is RandomnessConsumer {
         );
     }
 
-    function enable() external onlyOwner {
-        require(getRequestStatus() == 2, "Failed to enable");
+    function fulfillRequest() external onlyOwner {
+        require(getRequestStatus() == 2, "fulfillRequest failure");
         randomness.fulfillRequest(requestID);
     }
 
@@ -92,11 +99,16 @@ contract ChristmasStocking is RandomnessConsumer {
         currentMoney -= reward;
 
         (bool ok,) = payable(sender).call{value: reward}("");
-        require(ok);
+        require(ok, "Participate in failure");
+
+        if (currentAmount == 0) {
+            (bool a,) = factory.call(abi.encodeWithSignature("remove(uint256)", key));
+            (bool b,) = payable(owner).call{value: address(this).balance}("");
+            require(a && b, "Participate in failure!");
+        }
 
         emit ParticipateEvent(sender, reward, random);
     }
-
     function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
         done = true;
         for (uint32 i = 0; i < randomWords.length; i++) {

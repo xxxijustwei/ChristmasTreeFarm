@@ -9,7 +9,7 @@ contract ChristmasFarm {
     uint public constant KEY_LENGTH = 6;
 
     mapping(uint => bool) contains;
-    mapping(uint => ChristmasStocking) public presents;
+    mapping(uint => address) public presents;
     mapping(uint => address) private owners;
 
     modifier exists(uint _key) {
@@ -40,12 +40,21 @@ contract ChristmasFarm {
         uint money = value - cost;
         bytes32 salt = _getSalt(_key);
 
-        ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}(sender, salt, _amount, money);
+        ChristmasStocking stocking = new ChristmasStocking{value: value, salt: salt}();
+        stocking.initialize(sender, _key, salt, _amount, money);
+
+        address addr = address(stocking);
         contains[_key] = true;
-        presents[_key] = stocking;
+        presents[_key] = addr;
         owners[_key] = sender;
 
-        emit ChristmasCreateEvent(_key, address(stocking));
+        emit ChristmasCreateEvent(_key, addr);
+    }
+
+    function remove(uint _key) external {
+        delete contains[_key];
+        delete presents[_key];
+        delete owners[_key];
     }
 
     function getAddress(uint _key) external exists(_key) view returns (address) {
