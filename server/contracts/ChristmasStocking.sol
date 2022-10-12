@@ -5,7 +5,6 @@ import "./randomness/Randomness.sol";
 import "./randomness/RandomnessConsumer.sol";
 import "./utils/Uint8a32.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 uint64 constant FULFILLMENT_GAS_LIMIT = 100000;
 uint constant MIN_FEE = FULFILLMENT_GAS_LIMIT * 2 gwei;
