@@ -13,7 +13,7 @@ uint constant DEPOSIT = 1 ether;
 uint8 constant MAX_AMOUNT = 32;
 uint8 constant MAX_KEY_LENGTH = 8;
 
-contract ChristmasStockingV2 is RandomnessConsumer {
+contract ChristmasStocking is RandomnessConsumer {
 
     using Uint8a32 for uint;
     using SafeMath for uint;
@@ -152,7 +152,8 @@ contract ChristmasStockingV2 is RandomnessConsumer {
     function fulfillRandomWords(uint256 requestID, uint256[] memory randomWords) internal override {
         bytes32 ident = requestToIdent[requestID];
         uint result;
-        for (uint i = 0; i < randomWords.length; i++) {
+        uint len = randomWords.length;
+        for (uint i; i < len; i++) {
             uint random = randomWords[i];
             uint scope = random % 16;
             uint value = random % 2 == 0 ? 50 + scope : 50 - scope;
