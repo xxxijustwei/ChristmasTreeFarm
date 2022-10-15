@@ -1,15 +1,13 @@
 import { ethers } from "hardhat"
-import { Signer } from "ethers"
-import { save_contract_address, contract_name } from "./address";
+import { save_contract_address, contract_name } from "./utils";
 
 
 let deploy_address: {[key: string]: string} = {}
 let contract_inst: {[key: string]: any} = {}
 
-async function deploy_contract() {
-    let deployer: Signer
-    [deployer, ,] = await ethers.getSigners()
-    let address = await deployer.getAddress()
+async function deploy() {
+    let [owner,] = await ethers.getSigners()
+    let address = await owner.getAddress()
     console.log(`Deploy contract by ${address}`)
 
     const factory = await ethers.getContractFactory(contract_name)
@@ -18,12 +16,12 @@ async function deploy_contract() {
 
     deploy_address[contract_name] = instance.address
     contract_inst[contract_name] = instance
-    console.log(`contract ${contract_name} deploy to: ${instance.address}`)
+    console.log(`Contract ${contract_name} deploy to: ${instance.address}`)
     console.log(" ")
 }
 
 async function main() {
-    await deploy_contract()
+    await deploy()
     save_contract_address(deploy_address)
 }
 
