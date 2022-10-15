@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx hardhat compile",
-    "clean": "npx hardhat clean",
-    "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run scripts/deploy.ts",
-    "test": "npx hardhat test"
+    "build": "hardhat compile",
+    "clean": "hardhat clean",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "test": "hardhat test"
   },
   "keywords": [],
   "author": "",

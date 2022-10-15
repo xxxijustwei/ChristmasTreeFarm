@@ -41,8 +41,9 @@ contract ChristmasStocking is RandomnessConsumer {
     mapping(uint => bytes32) requestToIdent;
     mapping(bytes32 => uint) identToRequest;
 
-    event PresentsCreateEvent(bytes32 indexed ident, uint indexed key, uint indexed num);
-    event PresentsParticipateEvent(bytes32 indexed ident, uint reward);
+    event PresentsCreateEvent(uint indexed key, uint indexed num);
+    event PresentsReadyEvent();
+    event PresentsParticipateEvent(uint reward);
 
     error AmountBeyondError(uint amount, uint limited);
     error KeyLengthBeyondError(uint key, uint inputLen, uint requireLen);
@@ -165,6 +166,8 @@ contract ChristmasStocking is RandomnessConsumer {
         gift.randomWord = result;
 
         finished[ident] = true;
+
+        emit PresentsReadyEvent();
     }
 
     function getRequestStatus(bytes32 _ident) external onlyOwner(_ident) view returns (uint) {

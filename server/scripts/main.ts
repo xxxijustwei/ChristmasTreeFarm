@@ -24,9 +24,8 @@ async function create() {
     let args = iface.parseLog(receipt.logs[0]).args;
 
     console.log(`> Create presents:`)
-    console.log(`    identifier: ${args[0]}`);
-    console.log(`    key: ${args[1]}`);
-    console.log(`    num: ${args[2]}`);
+    console.log(`    key: ${args[0]}`);
+    console.log(`    num: ${args[1]}`);
     console.log("");
 }
 
@@ -56,7 +55,7 @@ async function participate() {
         let iface = new utils.Interface(abi);
         let args = iface.parseLog(receipt.logs[0]).args;
 
-        console.log(` - Account ${account.address} reward: ${utils.formatEther(args[1])}`);
+        console.log(` - Account ${account.address} reward: ${utils.formatEther(args[0])}`);
     }
 
     await Promise.all([internal(account1), internal(account2)]);
