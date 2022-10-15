@@ -4,12 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx hardhat compile && npm run copy",
+    "build": "npx hardhat compile",
     "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run scripts/deploy.ts",
-    "test": "npx hardhat test",
-    "copy": "rimraf ../client/src/typechain-types && cp -R ./typechain-types ../client/src"
+    "test": "npx hardhat test"
   },
   "keywords": [],
   "author": "",
