@@ -6,7 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 let utils = ethers.utils;
 let contract: Contracts.ChristmasStocking;
 let key: number = 19891213;
-let num: number;
+let num: number = 1;
 
 async function create() {
     let tx = await contract.create(
@@ -23,10 +23,10 @@ async function create() {
     let iface = new utils.Interface(abi);
     let args = iface.parseLog(receipt.logs[0]).args;
 
-    console.log(`Presents:`)
-    console.log(`  identifier: ${args[0]}`);
-    console.log(`  key: ${args[1]}`);
-    console.log(`  num: ${args[2]}`);
+    console.log(`> Create presents:`)
+    console.log(`    identifier: ${args[0]}`);
+    console.log(`    key: ${args[1]}`);
+    console.log(`    num: ${args[2]}`);
     console.log("");
 }
 
@@ -39,28 +39,34 @@ async function fulfillRequest() {
     let tx = await contract.fulfillRequest(ident);
     let receipt = await tx.wait();
 
-    let topic0 = utils.keccak256(utils.toUtf8Bytes("FulfillmentSucceeded()"));
-    if (receipt.logs[0].topics[0] == topic0) {
-        console.log("fulfillRequest success");
+    if (receipt.logs[0].topics[0] == "0xf36cbf89dc2c3c5012cc948a9dfeb18671dc41e53febe215cfabc99113e755ed") {
+        console.log("> fulfillRequest success");
     } else {
-        console.log("fulfillRequest failure");
+        console.log("> fulfillRequest failure");
     }
 }
 
 async function participate() {
     let [account1, account2] = await ethers.getSigners();
     let internal = async(account: SignerWithAddress) => {
-        let tx = await contract.participate(getIdent());
+        let instance = contract.connect(account);
+        let tx = await instance.participate(getIdent());
         let receipt = await tx.wait()
         let abi = ["event PresentsParticipateEvent(bytes32 indexed ident, uint reward)"];
         let iface = new utils.Interface(abi);
         let args = iface.parseLog(receipt.logs[0]).args;
 
-        console.log(`Account ${account.address} reward: ${utils.formatEther(args[1])}`);
+        console.log(` - Account ${account.address} reward: ${utils.formatEther(args[1])}`);
     }
 
     await Promise.all([internal(account1), internal(account2)]);
     console.log("");
+}
+
+async function drawback() {
+    let tx = await contract.drawback(getIdent());
+    await tx.wait();
+    console.log("> drawback successful!")
 }
 
 function getIdent() {
@@ -74,9 +80,10 @@ async function main() {
     let waiting = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
 
     await create();
-    await waiting(40000);
+    await waiting(60000);
     await fulfillRequest();
     await participate();
+    await drawback();
 }
 
 main().catch((error) => {
