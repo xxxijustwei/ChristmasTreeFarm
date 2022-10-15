@@ -55,7 +55,7 @@ contract ChristmasStocking is RandomnessConsumer {
         _;
     }
 
-    modifier isContain(bytes32 _ident) {
+    modifier isExists(bytes32 _ident) {
         if (!contains[_ident]) revert InvalidPresentsError();
         _;
     }
@@ -104,7 +104,7 @@ contract ChristmasStocking is RandomnessConsumer {
         emit PresentsCreateEvent(ident, _key, requestCounter);
     }
 
-    function participate(bytes32 _ident) external isContain(_ident) isValid(_ident) {
+    function participate(bytes32 _ident) external isExists(_ident) isValid(_ident) {
         address sender = msg.sender;
         Stocking storage gift = presents[_ident];
         require(gift.remainAmount != 0, "Gift is empty");
@@ -125,7 +125,7 @@ contract ChristmasStocking is RandomnessConsumer {
         emit PresentsParticipateEvent(_ident, reward);
     }
 
-    function drawback(bytes32 _ident) external onlyOwner(_ident) isContain(_ident) {
+    function drawback(bytes32 _ident) external onlyOwner(_ident) isExists(_ident) {
         Stocking storage gift = presents[_ident];
         require(gift.remainAmount == 0, "There are still gifts left");
         require(address(this).balance >= 1, "Drawback failure");
@@ -142,7 +142,7 @@ contract ChristmasStocking is RandomnessConsumer {
         payable(msg.sender).transfer(1 ether);
     }
 
-    function fulfillRequest(bytes32 _ident) external onlyOwner(_ident) isContain(_ident) {
+    function fulfillRequest(bytes32 _ident) external onlyOwner(_ident) isExists(_ident) {
         uint requestID = identToRequest[_ident];
         require(uint(randomness.getRequestStatus(requestID)) == 2, "waiting for parachain");
 
@@ -167,9 +167,15 @@ contract ChristmasStocking is RandomnessConsumer {
         finished[ident] = true;
     }
 
-    function getRequestStatus(bytes32 _ident) external view returns (uint) {
+    function getRequestStatus(bytes32 _ident) external onlyOwner(_ident) view returns (uint) {
         uint requestID = identToRequest[_ident];
         return uint(randomness.getRequestStatus(requestID));
+    }
+    
+    function getPresentsInfo(bytes32 _ident) external isExists(_ident) view returns (uint amount, uint remainAmount) {
+        Stocking storage gift = presents[_ident];
+        amount = gift.amount;
+        remainAmount = gift.remainAmount;
     }
 
     function getCounter() external view returns (uint) {
