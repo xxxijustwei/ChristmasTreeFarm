@@ -170,6 +170,10 @@ contract ChristmasStocking is RandomnessConsumer {
         emit PresentsReadyEvent();
     }
 
+    function presentsExists(bytes32 _ident) external view returns (bool) {
+        return contains[_ident];
+    }
+
     function getRequestStatus(bytes32 _ident) external onlyOwner(_ident) view returns (uint) {
         uint requestID = identToRequest[_ident];
         return uint(randomness.getRequestStatus(requestID));
