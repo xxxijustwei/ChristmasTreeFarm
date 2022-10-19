@@ -42,7 +42,6 @@ contract ChristmasStocking is RandomnessConsumer {
     mapping(bytes32 => uint) identToRequest;
 
     event PresentsCreateEvent(uint indexed key, uint indexed num);
-    event PresentsReadyEvent();
     event PresentsParticipateEvent(uint reward);
 
     error AmountBeyondError(uint amount, uint limited);
@@ -166,8 +165,6 @@ contract ChristmasStocking is RandomnessConsumer {
         gift.randomWord = result;
 
         finished[ident] = true;
-
-        emit PresentsReadyEvent();
     }
 
     function presentsExists(bytes32 _ident) external view returns (bool) {

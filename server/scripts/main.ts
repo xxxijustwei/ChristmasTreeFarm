@@ -38,7 +38,7 @@ async function fulfillRequest() {
     let tx = await contract.fulfillRequest(ident);
     let receipt = await tx.wait();
 
-    if (receipt.logs[0].topics[0] == "0xf36cbf89dc2c3c5012cc948a9dfeb18671dc41e53febe215cfabc99113e755ed") {
+    if (receipt.logs[0].topics[0] == utils.keccak256("FulFillmentSucceeded()")) {
         console.log("> fulfillRequest success");
     } else {
         console.log("> fulfillRequest failure");
