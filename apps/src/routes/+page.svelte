@@ -1,8 +1,13 @@
+<svelte:head>
+	<title>ChristmasTreeFarm</title>
+	<meta name="description" content="lucky money dapp" />
+</svelte:head>
+
 <section>
 	<h1 class="title">
 		Welcome to ChristmasTreeFarm!
 	</h1>
-	<h1 class="text-3xl" style="color: #fecdd3;">coming soon</h1>
+	<h1 class="text-3xl" style="color: #1c1917;">coming soon</h1>
 </section>
 
 <style lang="less">
@@ -18,7 +23,7 @@
 		line-height: 1;
 		font-size: 3rem;
 		font-weight: 300;
-		color: #10b981;
+		color: #d6d3d1;
 		text-align: center;
 		width: 35rem;
 		margin: 0 auto;
