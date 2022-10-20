@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "hardhat compile",
+    "build": "npm run clean && npm run compile && npm run copy",
     "clean": "hardhat clean",
     "compile": "hardhat compile",
+    "copy": "cp -R ./typechain-types ../apps/src/lib/contract/typechain-types",
     "deploy": "hardhat run scripts/deploy.ts",
     "test": "hardhat test"
   },
@@ -18,7 +19,6 @@
     "@nomiclabs/hardhat-ethers": "^2.1.1",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@openzeppelin/contracts": "^4.7.3",
-    "@openzeppelin/hardhat-upgrades": "^1.20.0",
     "dotenv": "^16.0.2",
     "ethers": "^5.7.1",
     "hardhat": "^2.11.2"

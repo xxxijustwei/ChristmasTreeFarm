@@ -1,8 +1,8 @@
-import { HardhatUserConfig } from "hardhat/config"
-import { config as dotenvConfig } from "dotenv"
-import { resolve } from "path"
-import "@nomicfoundation/hardhat-toolbox"
-import "@nomiclabs/hardhat-etherscan"
+import { HardhatUserConfig } from "hardhat/config";
+import { config as dotenvConfig } from "dotenv";
+import { resolve } from "path";
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-etherscan";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) })
@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
         }
     },
     paths:{
-        artifacts: "../client/src/artifacts",
+        artifacts: "../apps/src/lib/contract/artifacts",
     }
 };
 

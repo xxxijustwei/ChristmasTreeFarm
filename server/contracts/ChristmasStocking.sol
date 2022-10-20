@@ -101,7 +101,7 @@ contract ChristmasStocking is RandomnessConsumer {
         requestToIdent[requestID] = ident;
         identToRequest[ident] = requestID;
 
-        emit PresentsCreateEvent(ident, _key, requestCounter);
+        emit PresentsCreateEvent(_key, requestCounter);
     }
 
     function participate(bytes32 _ident) external isExists(_ident) isValid(_ident) {
@@ -122,7 +122,7 @@ contract ChristmasStocking is RandomnessConsumer {
 
         payable(sender).transfer(reward);
 
-        emit PresentsParticipateEvent(_ident, reward);
+        emit PresentsParticipateEvent(reward);
     }
 
     function drawback(bytes32 _ident) external onlyOwner(_ident) isExists(_ident) {
