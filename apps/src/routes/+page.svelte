@@ -1,5 +1,5 @@
 <svelte:head>
-	<title>ChristmasTreeFarm</title>
+	<title>CTF - Home</title>
 	<meta name="description" content="lucky money dapp" />
 </svelte:head>
 
@@ -16,7 +16,7 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		flex: 0.85;
+		flex: 0.65;
 	}
 
 	.title {
